@@ -23,25 +23,40 @@ It builds the data into a local dataset to directly use them.
 The XStructure recognize the following basic data casts:
 
 Bytes:  byte, char, uint8
+
 Integers: uint16, uint24, uint32, uint64
+
 Time: unix timestamp
+
 strings: normal, hexadecimal, 0-ended
+
 opaque (we have no clue what is inside this segment of information, or not yet decoded)
+
 ignore (we just ignore this information and it is not copied to the XStructure object)
+
+
 
 The XStructure can read the data as big-endian (Motorola-type) or little-endian (Intel-type) for numeric data (integers and timestamp)
 
 Big endian:
+
 Multibyte value on N bytes:
+
   value = (byte[0] << 8*(n-1)) | (byte[1] << 8*(n-2)) |
+  
           ... | byte[n-1];
 
 Little endian:
+
 Multibyte value on N bytes:
+
   value = (byte[0] | (byte[1] << 8) |
+  
           ... | (byte[n-1] << 8*(n-1));
           
+
 Warning: PHP7 does not recognize uint, so you will obtain most likely a signed INT (negative) if it is overflowed on uint64, or a float.
+
 *** Note for the programmers: implement here BCMath, GMP, etc ?
 
 The descriptor is sent to the XStructure with the data to decode.
@@ -53,6 +68,7 @@ The descriptor has the following structure:
 
 # Simple parameters:
 
+```
 $descriptor = array(
   'main' => 'ParamName1',
   'ParamName1' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
@@ -60,16 +76,25 @@ $descriptor = array(
   'ParamName3' => array('cast' => 'ParamName4', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
   ...
 );
+```
 
 The 'main' parameter points to the main structure to use to extract the data. It is mandatory.
 
+
 [cast] can be:
+
 char, byte, uint8, uint16, uint24, uint32, uint64,
+
 timestamp,
+
 string, string0, hex
+
 opaque
+
 ignore
+
 can also be another ParamNameX defined elsewhere into the descriptor.
+
 
 Default byte order is "commonplace network byte order" or big-endian. If your datastream has little-endian structure, you'll have to specify it explicitely.
 
@@ -81,12 +106,14 @@ It is mandatory for string, hex, opaque and ignore.
 
 To define a new structure, just build the inner parameters into the named array:
 
+```
   'ParamName4' => array(
      'SubParam1' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
      'SubParam2' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
      'SubParam3' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
      ...
    )
+```
 
 
 # Conditional Parameters and Sub-Structures:
@@ -97,6 +124,7 @@ SSL is one of them TCP/IP is another one, etc.
 
 In this case, the descriptor have this format:
 
+```
 $descriptor = array(
   'ParamNameX' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
   'ParamNameXL' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
@@ -113,6 +141,7 @@ $descriptor = array(
                         'length' => LENGTH | 'ParamNameXL'
                         )
 );
+```
 
 This can be read like this:
 - IF the ParamNameX has the value N, then the ParamNameY will be extracted from the datastream, otherwise NO
@@ -127,28 +156,35 @@ Object and Data Access:
 
 To create the XStructure, just create it with its descriptor and data:
 
+```
 $X = new \xstructure\XStructure($descriptor, $data);
+```
 
 To access to the data in the XStructure object, you just have to point the needed attribute:
 
-If: 
+If:
+``` 
 $descriptor = array(
   'ParamName1' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
   'ParamName2' => array('cast' => '[cast]', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
   'ParamName3' => array('cast' => 'ParamName4', 'endian' => 'little', 'pos' => POS, 'length' => LENGTH),
   ...
 );
+```
 
 Use:
+```
 echo $X->ParamName1;
 echo $X->ParamName2;
 etc.
+```
 
 When you define a subtructure, you can use it in cascade:
+```
 echo $X->ParamName3->SubParam1;
 echo $X->ParamName3->SubParam2;
 etc.
-
+```
 
 Encapsulation:
 ==============
@@ -157,6 +193,7 @@ It is usefull to encapsulate and extend the XStructure into a well-known structu
 
 For example:
 
+```
 class BitCoinBlock extends \xstructure\XStructure
 {
   private $descriptor = array(
@@ -171,6 +208,6 @@ class BitCoinBlock extends \xstructure\XStructure
 
 $BTCBlock = new BitCoinBlock('/temp/block00000.dat');
 echo $BTCBlock->MerkleRoot;
-
+```
 
 ---
