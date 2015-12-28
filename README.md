@@ -2,6 +2,7 @@ XStructure
 ==========
 
 Version 1.0.0
+
 The XStructure library is used to easily build a data set based on a data stream, packet, fragment, other language, like C++ or DB files. Examples come with a TLS3.1 encrypted HTTP1.1 message and the Bitcoin Block-0 header
 
 Change History
@@ -19,6 +20,13 @@ PHP lacks of structures to easily read and understand those data.
 
 The XStructure class is inteted to be a translator betwen the external data structures and PHP, based on a dictionary to extract information from the datastreams.
 It builds the data into a local dataset to directly use them.
+
+The library comes with 2 real explicit examples:
+- A SSL Handshake based on TLS3.1
+- A Bitcoin Block
+** Note: If the examples are missing, please refer to the github repository (phpclasses.org does not want to import the examples).
+https://github.com/webability/xstructure
+
 
 The XStructure recognize the following basic data casts:
 
