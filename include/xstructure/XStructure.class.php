@@ -21,6 +21,7 @@ along with Xamboo.  If not, see <http://www.gnu.org/licenses/>.
 
 Creation: 2015-12-13
 Changes:
+  2015-12-28 Phil: data is optional in constructor, compile is now protected, rstring added, vectors added, relative positions in cascade added
   2015-12-13 Phil: First release
 
 @End_DESCR */
@@ -29,7 +30,7 @@ namespace XStructure;
 
 class XStructure implements \ArrayAccess, \Iterator, \Countable
 {
-  const VERSION = '1.0.0';
+  const VERSION = '1.0.1';
   protected $entries = array();
 
   /* The constructor receive a data, that may be a string (to be compiled) or an array of param => value
@@ -39,9 +40,10 @@ class XStructure implements \ArrayAccess, \Iterator, \Countable
      The default array may contains expected values for each parameter, if they are not present.
        a null, 0 or false value in the parameters "is" a value and the default will not be used.
   */
-  public function __construct($data, $descriptor)
+  public function __construct($descriptor, $data = null)
   {
-    $this->entries = XStructure::compile($data, $descriptor['main'], $descriptor);
+    if ($data)
+      $this->entries = XStructure::compile($data, $descriptor['main'], $descriptor);
   }
   
   // magic functions implements
@@ -152,87 +154,122 @@ class XStructure implements \ArrayAccess, \Iterator, \Countable
   }
 
   // Compiler of the configuration string. May be used without creating an instance 
-  static private function compile($data, $structurename, $descriptor)
+  static protected function compile($data, $structurename, $descriptor, &$pos = 0)
   {
     $struct = array();
     if (!isset($descriptor[$structurename]))
       throw new \Error('Error: the definition of set '.$structurename.' does not exist');
-    $pos = 0;
     foreach($descriptor[$structurename] as $k => $p)
     {
       if (isset($p['conditionparam']))
       {
         if (!isset($struct[$p['conditionparam']]))
           throw new \Error('Error: the condition parameter is not defined: '.$p['conditionparam']);
-        if ($struct[$p['conditionparam']] != $p['conditionvalue'])
+        if ((isset($p['conditionvalue']) && $struct[$p['conditionparam']] != $p['conditionvalue']) || (isset($p['conditionnotvalue']) && $struct[$p['conditionparam']] == $p['conditionnotvalue']))
           continue;
       }
-
-      if (isset($p['pos']))
-        $pos = $p['pos'];
-      $end = isset($p['endian'])&&$p['endian']=='little'?false:true;
-      
-      switch($p['cast'])
+      if (isset($p['vector']) && $p['vector'])
       {
-        case 'byte': case 'char': case 'uint8':
-          $val = ord($data[$pos++]); break;
-        case 'uint16':
-          $val = 0;
-          foreach (range(0, 1) as $n) { $val += (ord($data[$pos++]) << 8*($end?1-$n:$n)); } break;
-        case 'uint24':
-          $val = 0;
-          foreach (range(0, 2) as $n) { $val += (ord($data[$pos++]) << 8*($end?2-$n:$n)); } break;
-        case 'uint32':
-          $val = 0;
-          foreach (range(0, 3) as $n) { $val += (ord($data[$pos++]) << 8*($end?3-$n:$n)); } break;
-        case 'uint64':
-          $val = 0;
-          foreach (range(0, 7) as $n) { $val += (ord($data[$pos++]) << 8*($end?7-$n:$n)); } break;
-        case 'string':
-          $val = substr($data, $pos, $p['length']);
-          if ($end)
-            $val = strrev($val);
-          $pos += $p['length'];
-          break;
-        case 'string0':
-          $ini = $pos;
-          while (ord($data[$pos++]) != 0);
-          $val = substr($data, $ini, $pos-$ini-1); // we don't copy the 0
-          if ($end)
-            $val = strrev($val);
-          break;
-        case 'hex':
-          $val = substr($data, $pos, $p['length']);
-          if ($end)
-            $val = strrev($val);
-          $val = bin2hex($val);
-          $pos += $p['length'];
-          break;
-        case 'timestamp': // timestamp es uint32
-          $val = 0;
-          foreach (range(0, 3) as $n) { $val += (ord($data[$pos++]) << 8*($end?3-$n:$n)); }
-          $val = date('Y-m-d H:i:s', $val);
-          break;
-        case 'opaque':
-          $val = substr($data, $pos, $p['length']);
-          $pos += $p['length'];
-          break;
-        case 'ignore':
-          $pos += $p['length'];
-          break;
-        default:
-          $length = (!is_numeric($p['length']))?$struct[$p['length']]:$p['length'];
-          $fragment = substr($data, $pos, $length);
-          $val = self::compile($fragment, $p['cast'], $descriptor);
-          $pos += $length;
-          break;
+        $length = (!is_numeric($p['length']))?$struct[$p['length']]:$p['length'];
+        $val = array();
+        if ($length > 0)
+        {
+          if (isset($p['lengthtype']) && $p['lengthtype'] == 'bytes')
+          {
+            $initpos = $pos;
+            $total = $pos + $length;
+            while ($pos < $total)
+            {
+              $val[] = self::compile($data, $p['cast'], $descriptor, $pos);
+            }
+            if ($pos != $total) // if strucure if correct, this should NOT happen
+              throw new \Error('Error: Wrong data size against structure size: '.$k.' expected '.$length.' bytes, total structure bytes = '. ($pos - $initpos));
+          }
+          else
+          {
+            foreach(range(1, $length) as $i)
+            {
+              $val[] = self::compile($data, $p['cast'], $descriptor, $pos);
+            }
+          }
+        }
+      }
+      else
+      {
+        if (isset($p['pos']))
+          $pos = $p['pos'];
+        // default big endian for common integers
+        if (in_array($p['cast'], array('uint16', 'uint24', 'uint32', 'uint64', 'timestamp')))
+          $end = isset($p['endian'])&&$p['endian']=='little'?false:true;
+        else // default little endian for strings and others
+          $end = isset($p['endian'])&&$p['endian']=='big'?true:false;
+        
+        switch($p['cast'])
+        {
+          case 'byte': case 'char': case 'uint8':
+            $val = ord($data[$pos++]); break;
+          case 'uint16':
+            $val = 0;
+            foreach (range(0, 1) as $n) { $val += (ord($data[$pos++]) << 8*($end?1-$n:$n)); } break;
+          case 'uint24':
+            $val = 0;
+            foreach (range(0, 2) as $n) { $val += (ord($data[$pos++]) << 8*($end?2-$n:$n)); } break;
+          case 'uint32':
+            $val = 0;
+            foreach (range(0, 3) as $n) { $val += (ord($data[$pos++]) << 8*($end?3-$n:$n)); } break;
+          case 'uint64':
+            $val = 0;
+            foreach (range(0, 7) as $n) { $val += (ord($data[$pos++]) << 8*($end?7-$n:$n)); } break;
+          case 'rstring':
+          case 'string':
+          case 'hex':
+            $length = (!is_numeric($p['length']))?$struct[$p['length']]:$p['length'];
+            $val = substr($data, $pos, $length);
+            if ($p['cast'] == 'rstring') // readable string
+              $val = preg_replace('/[\x00-\x1f]/', '.', $val);
+            if ($end)
+              $val = strrev($val);
+            if ($p['cast'] == 'hex')
+              $val = bin2hex($val);
+            $pos += $length;
+            break;
+          case 'string0':
+            $ini = $pos;
+            while (ord($data[$pos++]) != 0);
+            $val = substr($data, $ini, $pos-$ini-1); // we don't copy the 0
+            if ($end)
+              $val = strrev($val);
+            break;
+          case 'timestamp': // timestamp es uint32
+            $val = 0;
+            foreach (range(0, 3) as $n) { $val += (ord($data[$pos++]) << 8*($end?3-$n:$n)); }
+            $val = date('Y-m-d H:i:s', $val);
+            break;
+          case 'opaque':
+            $length = (!is_numeric($p['length']))?$struct[$p['length']]:$p['length'];
+            $val = substr($data, $pos, $length);
+            $pos += $length;
+            break;
+          case 'ignore':
+            $length = (!is_numeric($p['length']))?$struct[$p['length']]:$p['length'];
+            $pos += $length;
+            break;
+          default:
+            $length = (!is_numeric($p['length']))?$struct[$p['length']]:$p['length'];
+            $fragment = substr($data, $pos, $length);
+            if (strlen($fragment) < $length)
+              throw new \Error('Error: missing data: the expected fragment length is less than the total data packet ' . $k . ' for expected length: ' . $length);
+            $val = self::compile($fragment, $p['cast'], $descriptor);
+            $pos += $length;
+            break;
+        }
       }
       if ($p['cast']!='ignore')      
         $struct[$k] = $val;
     }
     return $struct;
   }
-
+  
 }
 
 ?>
