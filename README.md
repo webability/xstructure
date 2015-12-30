@@ -14,6 +14,8 @@ v1.0.1:
 - Added flexible size substructures and vectors
 - Compiler is now protected so extended classes can compile too
 - Data is optional into constructor, arguments order has changed
+- The example of TLS1.2 is fully decoded
+- The example of the bitcoin block 0 is rawurlencoded too
 
 v1.0.0:
 - Original release
