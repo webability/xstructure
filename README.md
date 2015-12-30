@@ -160,11 +160,11 @@ See the SSL example for superstructures and sub-conditional structures.
 
 Add the keyword "vector" => true to a structure to turn it into a vector.
 
-The vector will read tue quantity of substructures pointed by length.
+The vector will read the quantity of substructures pointed by length.
 
-The length can be a quantity of substrctures, or the size of the complete vector ( in this case, add the "vectortype" => "bytes" keyword)
+The length can be a quantity of substructures, or the size of the complete vector ( in this case, add the "vectortype" => "bytes" keyword)
 
-If the length is quantity of bytes, so the position of the end os the structure MUST be the same as the next parameter, otherwise an error is thrown.
+If the length is a quantity of bytes, the position of the end of the structure MUST be the same as the expected next parameter position, otherwise an error is thrown.
 
 Example: (See the TLS1.2 structure for more examples)
 
