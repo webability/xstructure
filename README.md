@@ -4,7 +4,7 @@
 
 Actual version: 1.0.1
 
-The XStructure library is used to easily build a data set based on a data stream, packet, fragment, other language, like C++ or DB files. Examples come with a TLS3.1 encrypted HTTP1.1 message and the Bitcoin Block-0 header
+The XStructure library is used to easily build a data set based on a data stream, packet, fragment, other language, like C++ or DB files. Examples come with a TLS1.2 encrypted HTTP1.1 message and the Bitcoin Block-0 header
 
 ## Change History
 
