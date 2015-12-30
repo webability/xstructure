@@ -162,7 +162,7 @@ Add the keyword "vector" => true to a structure to turn it into a vector.
 
 The vector will read the quantity of substructures pointed by length.
 
-The length can be a quantity of substructures, or the size of the complete vector ( in this case, add the "vectortype" => "bytes" keyword)
+The length can be a quantity of substructures, or the size of the complete vector ( in this case, add the "lengthtype" => "bytes" keyword)
 
 If the length is a quantity of bytes, the position of the end of the structure MUST be the same as the expected next parameter position, otherwise an error is thrown.
 
