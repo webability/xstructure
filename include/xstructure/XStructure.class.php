@@ -30,8 +30,9 @@ namespace XStructure;
 
 class XStructure implements \ArrayAccess, \Iterator, \Countable
 {
-  const VERSION = '1.0.1';
+  const VERSION = '1.0.2';
   protected $entries = array();
+  protected $pos = 0;
 
   /* The constructor receive a data, that may be a string (to be compiled) or an array of param => value
      The string of a configuration file has the format:
@@ -43,7 +44,7 @@ class XStructure implements \ArrayAccess, \Iterator, \Countable
   public function __construct($descriptor, $data = null)
   {
     if ($data)
-      $this->entries = XStructure::compile($data, $descriptor['main'], $descriptor);
+      $this->entries = XStructure::compile($data, $descriptor['main'], $descriptor, $this->pos);
   }
   
   // magic functions implements
@@ -220,6 +221,22 @@ class XStructure implements \ArrayAccess, \Iterator, \Countable
           case 'uint64':
             $val = 0;
             foreach (range(0, 7) as $n) { $val += (ord($data[$pos++]) << 8*($end?7-$n:$n)); } break;
+          case 'varint':
+            $val = 0;
+            $first = ord($data[$pos++]);
+            switch($first)
+            {
+              case 0xFD:
+                foreach (range(0, 1) as $n) { $val += (ord($data[$pos++]) << 8*($end?1-$n:$n)); } break;
+              case 0xFE:
+                foreach (range(0, 3) as $n) { $val += (ord($data[$pos++]) << 8*($end?3-$n:$n)); } break;
+              case 0xFF:
+                foreach (range(0, 7) as $n) { $val += (ord($data[$pos++]) << 8*($end?7-$n:$n)); } break;
+              default:
+                $val = $first;
+                break;
+            }
+            break;
           case 'rstring':
           case 'string':
           case 'hex':

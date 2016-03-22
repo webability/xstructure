@@ -2,11 +2,15 @@
 
 ## Introduction
 
-Actual version: 1.0.1
+Actual version: 1.0.2
 
 The XStructure library is used to easily build a data set based on a data stream, packet, fragment, other language, like C++ or DB files. Examples come with a TLS1.2 encrypted HTTP1.1 message and the Bitcoin Block-0 header
 
 ## Change History
+
+v1.0.2:
+- Added varInt as type of values
+- Added position as referenced parameter from constructor
 
 v1.0.1:
 - Added vector structure type
@@ -41,7 +45,7 @@ https://github.com/webability/xstructure
 
 Bytes:  byte, char, uint8
 
-Integers: uint16, uint24, uint32, uint64
+Integers: uint16, uint24, uint32, uint64, varint
 
 Time: unix timestamp
 
@@ -96,7 +100,7 @@ The 'main' parameter points to the main structure to use to extract the data. It
 
 [cast] can be:
 
-- char, byte, uint8, uint16, uint24, uint32, uint64, timestamp, string, string0, hex, opaque, ignore
+- char, byte, uint8, uint16, uint24, uint32, uint64, varint, timestamp, string, string0, hex, opaque, ignore
 - It can also be another ParamNameX defined elsewhere into the descriptor.
 
 
